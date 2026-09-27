@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Ahmad Alamer, PharmD, BC-ADM">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H₀ is on trial: p-values, α, errors and confidence intervals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF0F6; --panel:#FFFFFF; --ink:#1D1B3A; --muted:#5A5F7A; --rule:#D5D9E8;
+  --h0:#4B5BD7; --h0soft:rgba(75,91,215,.13);
+  --h1:#0E9F8A; --h1soft:rgba(14,159,138,.35);
+  --alpha:#E4572E; --beta:#F2A541;
+  --serif:"Young Serif", Georgia, serif;
+  --sans:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:18px;line-height:1.55;font-variant-numeric:tabular-nums}
+.wrap{max-width:980px;margin:0 auto;padding:0 24px}
+h1,h2,h3{font-family:var(--serif);font-weight:400;line-height:1.1;margin:0}
+h1{font-size:clamp(52px,9vw,104px);letter-spacing:-.02em}
+h2{font-size:clamp(30px,4.4vw,44px);margin-bottom:14px}
+h3{font-size:22px;margin-bottom:8px}
+p{margin:0 0 14px;max-width:70ch}
+.muted{color:var(--muted)}
+sub,sup{line-height:0}
+
+/* hero */
+.hero{padding:72px 0 40px}
+.hero .course{color:var(--muted);margin-bottom:18px}
+.hero .lede{font-size:21px;max-width:60ch;margin-top:22px}
+.casefile{margin-top:34px;background:var(--panel);border:2px solid var(--ink);border-radius:4px;padding:6px 0;box-shadow:8px 8px 0 var(--ink)}
+.casefile .row{display:grid;grid-template-columns:190px 1fr;gap:18px;padding:12px 24px;border-bottom:1px solid var(--rule)}
+.casefile .row:last-child{border-bottom:0}
+.casefile dt{font-family:var(--serif);font-size:19px}
+.casefile dd{margin:0}
+.casefile .title{font-family:var(--serif);font-size:15px;color:var(--muted);padding:10px 24px 4px}
+
+nav.jump{display:flex;flex-wrap:wrap;gap:8px;margin:36px 0 0}
+nav.jump a{color:var(--ink);text-decoration:none;border:1.5px solid var(--ink);border-radius:999px;padding:6px 14px;font-weight:500;font-size:15px}
+nav.jump a:hover{background:var(--ink);color:#fff}
+
+/* sections */
+section{padding:64px 0 8px}
+.tag{font-family:var(--serif);font-size:17px;color:var(--h0);margin-bottom:6px}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:22px 22px 18px;margin:18px 0}
+.quote{border-left:4px solid var(--h0);padding:4px 0 4px 16px;font-family:var(--serif);font-size:21px;margin:18px 0}
+.quote small{display:block;font-family:var(--sans);font-size:14px;color:var(--muted);margin-top:4px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--sans);fill:var(--ink)}
+
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 28px;margin-top:14px}
+.ctl label{display:flex;justify-content:space-between;font-weight:600;font-size:15px;margin-bottom:4px}
+.ctl label span{font-weight:500;color:var(--h0)}
+input[type=range]{width:100%;accent-color:var(--h0);height:28px}
+.picker{display:flex;gap:6px;flex-wrap:wrap}
+button{font:inherit;font-size:15px;font-weight:600;cursor:pointer;border-radius:999px;padding:8px 16px;border:1.5px solid var(--ink);background:#fff;color:var(--ink)}
+button:hover{background:#F3F4FA}
+button.on{background:var(--ink);color:#fff}
+button.primary{background:var(--ink);color:#fff}
+button.primary:hover{background:#34305f}
+:focus-visible{outline:3px solid var(--beta);outline-offset:2px}
+
+.readout{display:flex;flex-wrap:wrap;gap:10px 30px;margin-top:6px;align-items:baseline}
+.big{font-family:var(--serif);font-size:34px}
+.stat small{display:block;color:var(--muted);font-size:14px}
+
+.meter{height:16px;border-radius:999px;background:linear-gradient(90deg,#DCE0F5,var(--h0),#7a2bd0);position:relative;margin:14px 0 6px}
+.meter .needle{position:absolute;top:-6px;width:4px;height:28px;background:var(--ink);border-radius:2px;transform:translateX(-2px);transition:left .25s}
+.meter-labels{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.mood{font-family:var(--serif);font-size:24px;margin-top:8px}
+
+.verdict{margin-top:14px;padding:14px 18px;border-radius:10px;font-family:var(--serif);font-size:24px}
+.verdict.guilty{background:rgba(228,87,46,.12);border:2px solid var(--alpha)}
+.verdict.free{background:var(--h0soft);border:2px solid var(--h0)}
+.verdict small{display:block;font-family:var(--sans);font-size:15px;color:var(--muted);margin-top:4px}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.vs{border:1.5px solid var(--rule);border-radius:10px;padding:14px 16px}
+.vs h3{font-size:26px}
+.vs ul{margin:6px 0 0;padding-left:20px}
+
+ul.points{padding-left:22px;margin:8px 0}
+ul.points li{margin-bottom:6px}
+
+/* error grid */
+.grid{display:grid;grid-template-columns:150px 1fr 1fr;border:2px solid var(--ink);border-radius:6px;overflow:hidden;background:#fff}
+.grid > div{padding:14px 16px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.grid .hd{font-weight:600;background:#F6F7FB}
+.grid .hd.row{font-family:var(--serif);font-weight:400;font-size:18px}
+.grid .cell b{font-family:var(--serif);font-weight:400;font-size:22px;display:block}
+.grid .t1{background:rgba(228,87,46,.12)}
+.grid .t2{background:rgba(242,165,65,.2)}
+.grid .ok{background:rgba(14,159,138,.1)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px;margin-top:8px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px}
+.powerbar{height:14px;background:#E6E8F2;border-radius:999px;position:relative;overflow:hidden;margin:8px 0 4px}
+.powerbar .fill{height:100%;background:var(--h1);transition:width .25s}
+.powerbar .tick{position:absolute;left:80%;top:0;bottom:0;width:2px;background:var(--ink)}
+
+/* multiplicity */
+.pills{display:grid;grid-template-columns:repeat(10,1fr);gap:8px;margin:16px 0}
+.pill{border:1.5px solid var(--rule);border-radius:999px;text-align:center;padding:6px 2px;font-size:13px;background:#fff;transition:background .2s}
+.pill b{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.pill.fp{background:var(--alpha);border-color:var(--alpha);color:#fff}
+.pill.fp b{color:#fff}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;margin-left:6px}
+.toggle input{width:20px;height:20px;accent-color:var(--ink)}
+
+/* CI cards */
+.cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:10px}
+.case{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:18px}
+.case .est{font-family:var(--serif);font-size:20px;margin:6px 0}
+.case .answer{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--rule);font-size:16px}
+.case.open .answer{display:block}
+
+/* cheat sheet */
+.cheat{background:var(--ink);color:#fff;border-radius:18px;padding:34px 30px;margin:24px 0 10px}
+.cheat h2{color:#fff}
+.cheat dl{display:grid;grid-template-columns:180px 1fr;gap:14px 24px;margin:18px 0 26px}
+.cheat dt{font-family:var(--serif);font-size:22px;color:#FFD48A}
+.cheat dd{margin:0}
+.cheat h3{color:#fff;margin-top:6px}
+.cheat .donts{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-top:10px}
+.cheat .donts div{border-top:1px solid rgba(255,255,255,.25);padding-top:10px;font-size:16px}
+.cheat .donts s{color:#FF9C7E;text-decoration-thickness:2px}
+.scene{margin-top:30px;border-radius:14px;overflow:hidden;border:2px solid var(--ink);box-shadow:8px 8px 0 var(--ink);background:#2B2850}
+.moodrow{display:flex;align-items:center;gap:14px;margin-top:6px}
+.moodrow svg{width:110px;flex:0 0 110px}
+.court{background:#F4F5FA;border-radius:10px;margin-top:12px}
+.gavel{transform-box:view-box}
+.gavel.bang{animation:bang .8s ease-in-out}
+@keyframes bang{0%{transform:rotate(0)}35%{transform:rotate(-38deg)}60%{transform:rotate(14deg)}75%{transform:rotate(4deg)}100%{transform:rotate(0)}}
+.shake{animation:shake .22s infinite}
+@keyframes shake{0%,100%{transform:translate(0,0)}25%{transform:translate(-2px,1px)}75%{transform:translate(2px,-1px)}}
+@media (prefers-reduced-motion:reduce){.gavel.bang,.shake{animation:none}}
+.pill.fp{background:repeating-linear-gradient(90deg,var(--alpha) 0 9px,#1D1B3A 9px 12px)}
+.jurycap{font-family:var(--serif);font-size:22px;margin:18px 0 0}
+footer{padding:26px 0 60px;color:var(--muted);font-size:14px}
+
+@media (max-width:720px){
+  body{font-size:17px}
+  .casefile .row{grid-template-columns:1fr;gap:2px}
+  .two,.cheat .donts{grid-template-columns:1fr}
+  .grid{grid-template-columns:96px 1fr 1fr;font-size:14px}
+  .grid .cell b{font-size:17px}
+  .pills{grid-template-columns:repeat(5,1fr)}
+  .cheat dl{grid-template-columns:1fr;gap:4px}
+  .cheat dd{margin-bottom:10px}
+}
+</style>
+</head>
+<body>
+
+<header class="wrap hero">
+  <div class="course">Introduction to Biostatistics, Lecture 4 recap<br>Prepared by Ahmad Alamer, PharmD, BC-ADM. For educational purposes, please credit the author.</div>
+  <h1>H₀ is on trial.</h1>
+  <p class="lede">In classical statistics you are the judge. The null hypothesis is the defendant, presumed innocent. Your data are the evidence. Four ideas decide every case: the p-value, α, the mistakes a judge can make, and the confidence interval.</p>
+
+  <div class="scene"><svg id="hero" viewBox="0 0 900 400" role="img" aria-label="Courtroom: the jury on the left, you as the judge in the middle, the evidence on an easel, and H0 in the defendant's dock"></svg></div>
+
+  <dl class="casefile">
+    <div class="title">Case file: Atorvastatin vs Simvastatin</div>
+    <div class="row"><dt>The defendant</dt><dd>H₀: “Both statins reduce cholesterol by the same amount.” (mean difference = 0)</dd></div>
+    <div class="row"><dt>The evidence</dt><dd>Atorvastatin (n = 50): mean reduction 45 mg/dL, SD 8.<br>Simvastatin (n = 50): mean reduction 38 mg/dL, SD 6.</dd></div>
+    <div class="row"><dt>Presumption</dt><dd>H₀ is innocent until the evidence becomes too embarrassing to explain by chance.</dd></div>
+    <div class="row"><dt>Possible verdicts</dt><dd>Guilty: reject H₀. Not guilty: fail to reject H₀.<br><span class="muted">There is no verdict called “innocent.” We never prove H₀ true.</span></dd></div>
+  </dl>
+
+  <nav class="jump" aria-label="Sections">
+    <a href="#pvalue">p-value</a><a href="#alpha">α</a><a href="#errors">Type I &amp; II errors</a><a href="#multi">Multiple testing</a><a href="#ci">Confidence intervals</a><a href="#read">Read the CI</a><a href="#summary">Summary</a>
+  </nav>
+</header>
+
+<main class="wrap">
+
+<!-- ================= A: p-value ================= -->
+<section id="pvalue">
+  <div class="tag">Exhibit A</div>
+  <h2>The p-value: how embarrassing is the evidence?</h2>
+  <p>Pretend H₀ is true: the two statins are identical. The p-value asks one question: <b>if that were true, how often would chance alone produce a difference at least as extreme as the one we saw?</b></p>
+  <div class="quote">“A p value is a measure of how embarrassing the data are to the null hypothesis.”<small>Nicholas Maxwell, Data Matters (2004)</small></div>
+
+  <div class="panel">
+    <svg id="chartP" viewBox="0 0 800 260" role="img" aria-label="t distribution under H0 with the p-value tails shaded"></svg>
+    <div class="legend"><span><i style="background:var(--h0soft);border:1px solid var(--h0)"></i>What chance alone produces if H₀ is true (t distribution)</span><span><i style="background:var(--h0)"></i>p-value: both tails beyond your result</span></div>
+    <div class="controls">
+      <div class="ctl"><label for="diff">Observed difference <span id="diffV"></span></label><input id="diff" type="range" min="0" max="8" step="0.1" value="7"></div>
+      <div class="ctl"><label for="nA">Patients per group <span id="nAV"></span></label><input id="nA" type="range" min="0" max="7" step="1" value="2"></div>
+    </div>
+    <div class="readout">
+      <div class="stat"><small>t statistic</small><span class="big" id="tV"></span></div>
+      <div class="stat"><small>degrees of freedom</small><span class="big" id="dfV"></span></div>
+      <div class="stat"><small>two-tailed p-value</small><span class="big" id="pV"></span></div>
+    </div>
+    <div class="meter" aria-hidden="true"><div class="needle" id="needle"></div></div>
+    <div class="meter-labels"><span>p = 1</span><span>0.1</span><span>0.01</span><span>0.001</span><span>10⁻⁴</span><span>10⁻⁵</span><span>≤10⁻⁶</span></div>
+    <div class="moodrow"><svg id="defA" viewBox="0 0 120 130" aria-hidden="true"></svg><div class="mood" id="mood"></div></div>
+  </div>
+
+  <ul class="points">
+    <li>Bigger difference → further into the tail → smaller p.</li>
+    <li>More patients → smaller p for the <i>same</i> difference. Try a 0.5 mg/dL difference with 5,000 per group: “significant,” yet clinically meaningless.</li>
+    <li>p is computed from your data. It is <b>not</b> the probability that H₀ is true, and a large p only means “get more data.”</li>
+  </ul>
+</section>
+
+<!-- ================= B: alpha ================= -->
+<section id="alpha">
+  <div class="tag">Exhibit B</div>
+  <h2>α: the bar you set before the trial starts</h2>
+  <p>Before any patient is enrolled, the court decides how much risk of convicting an innocent H₀ it will tolerate. That pre-set risk is α. With α = 0.05 it is split into 0.025 in each tail, which for 98 degrees of freedom puts the critical values at t = ±1.98.</p>
+
+  <div class="panel">
+    <div class="row-btns"><b style="margin-right:6px">Choose α:</b><div class="picker alpha-picker"></div></div>
+    <svg id="chartA" viewBox="0 0 800 260" role="img" aria-label="Rejection region for the chosen alpha with the observed t marked"></svg>
+    <div class="legend"><span><i style="background:var(--alpha)"></i>Rejection region (total area = α)</span><span><i style="background:var(--ink)"></i>Your observed t (from Exhibit A)</span></div>
+    <svg id="courtB" class="court" viewBox="0 0 800 250" role="img" aria-label="The judge announces the verdict to H0"></svg>
+    <div id="verdict" class="verdict"></div>
+  </div>
+
+  <div class="two">
+    <div class="vs"><h3>α</h3><ul><li>Pre-set, chosen by you</li><li>Exists before the data</li><li>Does not shrink when n grows</li><li>A property of the procedure</li></ul></div>
+    <div class="vs"><h3>p-value</h3><ul><li>Computed from the data</li><li>Changes with every study</li><li>Shrinks as n grows</li><li>A property of this dataset</li></ul></div>
+  </div>
+  <p style="margin-top:14px">Decision rule (Neyman–Pearson): if p ≤ α, reject H₀. Fisher preferred simply reporting the p-value as a continuous measure of evidence, without the rigid yes/no cut.</p>
+</section>
+
+<!-- ================= C: errors ================= -->
+<section id="errors">
+  <div class="tag">Exhibit C</div>
+  <h2>A judge can be wrong in two ways</h2>
+  <p>Every verdict is made without seeing the truth. Cross the verdict with the truth and you get four outcomes, two of them mistakes.</p>
+
+  <div class="grid" role="table" aria-label="Type I and Type II errors">
+    <div class="hd">Verdict ↓ / Truth →</div>
+    <div class="hd">H₀ is really innocent<br><span class="muted" style="font-weight:400">no real effect</span></div>
+    <div class="hd">H₀ is really guilty<br><span class="muted" style="font-weight:400">a real effect exists</span></div>
+
+    <div class="hd row">Guilty<br><span class="muted" style="font-size:14px;font-family:var(--sans)">reject H₀</span></div>
+    <div class="cell t1"><b>Type I error (α)</b>Convicted an innocent. A false alarm: you claim the drug works when it doesn’t.</div>
+    <div class="cell ok"><b>Correct: power (1 − β)</b>Caught the real effect.</div>
+
+    <div class="hd row">Not guilty<br><span class="muted" style="font-size:14px;font-family:var(--sans)">fail to reject H₀</span></div>
+    <div class="cell ok"><b>Correct (1 − α)</b>Innocent walks free, as it should.</div>
+    <div class="cell t2"><b>Type II error (β)</b>The guilty walks free. You missed a drug that really works.</div>
+  </div>
+
+  <p style="margin-top:22px">α controls how <b>strict</b> the test is. β is the chance of <b>missing</b> a real effect. Power = 1 − β, and studies are usually designed for power of at least 80% (β = 0.20). Now watch them fight:</p>
+
+  <div class="panel">
+    <svg id="chartE" viewBox="0 0 800 280" role="img" aria-label="Null and alternative distributions with alpha, beta and power shaded"></svg>
+    <div class="legend">
+      <span><i style="background:transparent;border:2px solid var(--h0)"></i>World where H₀ is true</span>
+      <span><i style="background:transparent;border:2px solid var(--h1)"></i>World where the drug really works</span>
+      <span><i style="background:var(--alpha)"></i>α (Type I)</span>
+      <span><i style="background:var(--beta)"></i>β (Type II)</span>
+      <span><i style="background:var(--h1soft)"></i>Power</span>
+    </div>
+    <div class="controls">
+      <div class="ctl"><label for="dE">True effect size (Cohen’s d) <span id="dEV"></span></label><input id="dE" type="range" min="0" max="1.2" step="0.05" value="0.5"></div>
+      <div class="ctl"><label for="nE">Patients per group <span id="nEV"></span></label><input id="nE" type="range" min="5" max="150" step="1" value="30"></div>
+      <div class="ctl"><label>α</label><div class="picker alpha-picker"></div></div>
+    </div>
+    <div class="readout" style="margin-top:14px">
+      <div class="stat"><small>α (Type I risk)</small><span class="big" id="aOut"></span></div>
+      <div class="stat"><small>β (Type II risk)</small><span class="big" id="bOut"></span></div>
+      <div class="stat"><small>Power (1 − β)</small><span class="big" id="pwOut"></span></div>
+    </div>
+    <div class="powerbar"><div class="fill" id="pwFill"></div><div class="tick" title="80% target"></div></div>
+    <div style="position:relative;height:18px;font-size:13px;color:var(--muted)"><span style="position:absolute;left:0">0%</span><span style="position:absolute;left:80%;transform:translateX(-50%)">80% target</span><span style="position:absolute;right:0">100%</span></div>
+    <p class="jurycap" id="juryCap"></p>
+    <p class="muted" style="font-size:15px;margin:2px 0 0">Imagine 12 separate courts hearing this same case, where the drug really works. Each juror stands for one court’s verdict.</p>
+    <svg id="juryC" class="court" viewBox="0 0 800 225" role="img" aria-label="Twelve jurors holding guilty or not guilty cards"></svg>
+    <div class="legend"><span><i style="background:var(--h1)"></i>Convicts: caught the real effect (power)</span><span><i style="background:var(--beta)"></i>Acquits: missed it (Type II error)</span></div>
+    <p class="muted" style="margin-top:10px;font-size:15px">Try it: make α stricter (0.01) and β grows. The only way to shrink both is more patients or a bigger true effect. (Normal approximation, two-sided test.)</p>
+  </div>
+</section>
+
+<!-- ================= D: multiplicity ================= -->
+<section id="multi">
+  <div class="tag">Exhibit D</div>
+  <h2>Put 20 useless drugs on trial</h2>
+  <p>Each drug below does <b>nothing</b>. Test each at α = 0.05 and, on average, one will be “significant” purely by chance. That is a Type I error, also called a false discovery.</p>
+  <div class="panel">
+    <div class="row-btns">
+      <button class="primary" id="run1">Test 20 useless drugs</button>
+      <button id="run100">Repeat 100 times</button>
+      <button id="resetM">Reset</button>
+      <label class="toggle"><input type="checkbox" id="bonf"> Bonferroni (α = 0.05 / 20 = 0.0025)</label>
+    </div>
+    <div class="pills" id="pills"></div>
+    <div class="readout">
+      <div class="stat"><small>Rounds run</small><span class="big" id="mRuns">0</span></div>
+      <div class="stat"><small>False discoveries per round</small><span class="big" id="mAvg">–</span></div>
+      <div class="stat"><small>Rounds with ≥ 1 false discovery</small><span class="big" id="mAny">–</span></div>
+    </div>
+    <p class="muted" id="mTheory" style="font-size:15px;margin-top:8px"></p>
+  </div>
+  <p>The more questions you ask, the more chances the data get to look extreme. Bonferroni fixes it by being very strict (and loses power); leaving p-values uncorrected is too lenient. There is no universal recipe.</p>
+</section>
+
+<!-- ================= E: CI ================= -->
+<section id="ci">
+  <div class="tag">Exhibit E</div>
+  <h2>Confidence intervals: the promise is about the net</h2>
+  <p>Instead of a guilty/not guilty verdict, ask two questions. What is the single best guess for the true difference? That is the <b>point estimate</b>. What range of differences is plausible? That is the <b>confidence interval</b>.</p>
+  <p>Below, the true difference is secretly 7 mg/dL. Every click reruns the statin trial with 50 new patients per group. Each line is one study’s interval.</p>
+  <div class="panel">
+    <div class="row-btns">
+      <button class="primary" id="ci1">Run 1 study</button>
+      <button id="ci20">Run 20 studies</button>
+      <button id="ciReset">Reset</button>
+      <span style="margin-left:8px;font-weight:600">Confidence:</span>
+      <div class="picker" id="ciLevel"></div>
+    </div>
+    <svg id="chartCI" viewBox="0 0 800 360" role="img" aria-label="Repeated confidence intervals around a true value"></svg>
+    <div class="legend"><span><i style="background:var(--h1)"></i>Interval caught the true value</span><span><i style="background:var(--alpha)"></i>Interval missed it</span></div>
+    <div class="readout">
+      <div class="stat"><small>Studies run</small><span class="big" id="ciN">0</span></div>
+      <div class="stat"><small>Caught the truth</small><span class="big" id="ciHit">–</span></div>
+    </div>
+  </div>
+  <ul class="points">
+    <li>95% describes the <b>method</b>: in the long run, 95% of intervals built this way catch the truth.</li>
+    <li>Any single interval either contains the true value or it doesn’t (probability 1 or 0). We just don’t know which.</li>
+    <li>If α = 0.05, the matching interval is 95%. A wide interval means more uncertainty.</li>
+  </ul>
+</section>
+
+<!-- ================= F: read the CI ================= -->
+<section id="read">
+  <div class="tag">Exhibit F</div>
+  <h2>Read the interval, not just the p-value</h2>
+  <p>A CI shows the size of the effect and its uncertainty, which a p-value never does. Make your call on each case, then reveal.</p>
+  <div class="cases">
+    <div class="case">
+      <h3>Statins</h3>
+      <div class="est">+7.0 mg/dL (95% CI 4.2 to 9.8), p &lt; 0.001</div>
+      <svg id="f1" viewBox="0 0 360 90"></svg>
+      <button class="reveal">Reveal</button>
+      <div class="answer">The whole interval sits above 0, so it’s statistically significant and consistent with a real advantage for atorvastatin. Whether 4 to 10 mg/dL matters to patients is a clinical question, not a statistical one.</div>
+    </div>
+    <div class="case">
+      <h3>BP drug in a huge trial</h3>
+      <div class="est">−0.5 mmHg (95% CI −0.7 to −0.3), p &lt; 0.0001</div>
+      <svg id="f2" viewBox="0 0 360 90"></svg>
+      <button class="reveal">Reveal</button>
+      <div class="answer">Tiny p, tiny effect. The interval is narrow because n is enormous, but half a millimetre of mercury changes nothing for a patient. Statistically significant, clinically meaningless. <span class="muted">(Interval drawn for illustration.)</span></div>
+    </div>
+    <div class="case">
+      <h3>Aspirin for secondary stroke</h3>
+      <div class="est">Risk difference +2% (95% CI −3% to +7%)</div>
+      <svg id="f3" viewBox="0 0 360 90"></svg>
+      <button class="reveal">Reveal</button>
+      <div class="answer">The interval crosses 0 and includes both benefit and harm, so the result is inconclusive. It does not prove aspirin has no effect; not guilty ≠ innocent.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Summary ================= -->
+<section id="summary">
+  <div class="cheat">
+    <h2>The whole lecture on one screen</h2>
+    <dl>
+      <dt>p-value</dt><dd>If H₀ were true, the probability of data at least as extreme as ours. Computed from the data. Small p = embarrassing for H₀.</dd>
+      <dt>α</dt><dd>The pre-set risk of a false alarm we accept (usually 0.05). Decided before the data. Reject H₀ if p ≤ α.</dd>
+      <dt>Type I error</dt><dd>Rejecting a true H₀: convicting the innocent. Probability = α.</dd>
+      <dt>Type II error</dt><dd>Failing to reject a false H₀: the guilty walks free. Probability = β. Power = 1 − β, usually targeted at ≥ 80%.</dd>
+      <dt>Confidence interval</dt><dd>Point estimate ± a margin. 95% of intervals built this way catch the truth in the long run. Shows effect size and uncertainty.</dd>
+    </dl>
+    <h3>Things we don’t say in this class</h3>
+    <div class="donts">
+      <div><s>“p = 0.03 means a 3% chance H₀ is true.”</s><br>It assumes H₀ is true; it can’t measure it.</div>
+      <div><s>“p &gt; 0.05, so there’s no effect.”</s><br>Absence of evidence isn’t evidence of absence.</div>
+      <div><s>“There’s a 95% chance the truth is in this interval.”</s><br>The 95% belongs to the method, not to one interval.</div>
+      <div><s>“p &lt; 0.001, so the effect is huge.”</s><br>p says nothing about size. Look at the CI.</div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap"><b>Prepared by Ahmad Alamer, PharmD, BC-ADM.</b> For educational purposes, please credit the author. Based on Lecture 4, Introduction to Biostatistics. Further reading: Greenland et al. (2016), Eur J Epidemiol 31:337–350; Wasserstein &amp; Lazar (2016), The ASA Statement on p-Values.</footer>
+
+<script>
+/* ---------- math ---------- */
+function lgamma(x){const c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(x<0.5)return Math.log(Math.PI/Math.abs(Math.sin(Math.PI*x)))-lgamma(1-x);
+  x-=1;let a=c[0];const t=x+7.5;for(let i=1;i<9;i++)a+=c[i]/(x+i);
+  return 0.5*Math.log(2*Math.PI)+(x+0.5)*Math.log(t)-t+Math.log(a);}
+function betacf(a,b,x){const F=1e-300;let qab=a+b,qap=a+1,qam=a-1,c=1,d=1-qab*x/qap;if(Math.abs(d)<F)d=F;d=1/d;let h=d;
+  for(let m=1;m<=300;m++){const m2=2*m;let aa=m*(b-m)*x/((qam+m2)*(a+m2));d=1+aa*d;if(Math.abs(d)<F)d=F;c=1+aa/c;if(Math.abs(c)<F)c=F;d=1/d;h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<F)d=F;c=1+aa/c;if(Math.abs(c)<F)c=F;d=1/d;const del=d*c;h*=del;if(Math.abs(del-1)<3e-14)break;}
+  return h;}
+function ibeta(x,a,b){if(x<=0)return 0;if(x>=1)return 1;
+  const bt=Math.exp(lgamma(a+b)-lgamma(a)-lgamma(b)+a*Math.log(x)+b*Math.log(1-x));
+  return x<(a+1)/(a+b+2)?bt*betacf(a,b,x)/a:1-bt*betacf(b,a,1-x)/b;}
+const tTwo=(t,df)=>ibeta(df/(df+t*t),df/2,0.5);
+const tpdf=(t,df)=>Math.exp(lgamma((df+1)/2)-lgamma(df/2))/Math.sqrt(df*Math.PI)*Math.pow(1+t*t/df,-(df+1)/2);
+function tcrit(alpha,df){let lo=0,hi=60;for(let i=0;i<80;i++){const m=(lo+hi)/2;if(tTwo(m,df)>alpha)lo=m;else hi=m;}return (lo+hi)/2;}
+const npdf=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
+function ncdf(x){const z=Math.abs(x)/Math.SQRT2,t=1/(1+0.3275911*z);
+  const e=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-z*z);
+  return x>=0?0.5*(1+e):0.5*(1-e);}
+function zcrit(alpha){let lo=0,hi=10;for(let i=0;i<80;i++){const m=(lo+hi)/2;if(2*(1-ncdf(m))>alpha)lo=m;else hi=m;}return (lo+hi)/2;}
+function rnorm(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* ---------- svg helpers ---------- */
+const $=id=>document.getElementById(id);
+function scaler(xmin,xmax,ymax,W,H,m){
+  const sx=x=>m.l+(x-xmin)/(xmax-xmin)*(W-m.l-m.r);
+  const sy=y=>H-m.b-(y/ymax)*(H-m.t-m.b);
+  return {sx,sy};}
+function curve(f,a,b,sx,sy,N=160){let d="";for(let i=0;i<=N;i++){const x=a+(b-a)*i/N;d+=(i?"L":"M")+sx(x).toFixed(1)+","+sy(f(x)).toFixed(1);}return d;}
+function area(f,a,b,sx,sy,N=120){if(b<=a)return "";let d=`M${sx(a).toFixed(1)},${sy(0).toFixed(1)}`;for(let i=0;i<=N;i++){const x=a+(b-a)*i/N;d+=`L${sx(x).toFixed(1)},${sy(f(x)).toFixed(1)}`;}return d+`L${sx(b).toFixed(1)},${sy(0).toFixed(1)}Z`;}
+function axis(xmin,xmax,step,sx,y,label){let s=`<line x1="${sx(xmin)}" x2="${sx(xmax)}" y1="${y}" y2="${y}" stroke="#1D1B3A" stroke-width="1.5"/>`;
+  for(let v=Math.ceil(xmin/step)*step;v<=xmax+1e-9;v+=step){const X=sx(v);s+=`<line x1="${X}" x2="${X}" y1="${y}" y2="${y+5}" stroke="#1D1B3A"/><text x="${X}" y="${y+20}" text-anchor="middle" font-size="13">${+v.toFixed(2)}</text>`;}
+  if(label)s+=`<text x="${sx(xmax)}" y="${y-8}" text-anchor="end" font-size="13" fill="#5A5F7A">${label}</text>`;return s;}
+function fmtP(p){if(p<1e-16)return "&lt; 10<sup>−16</sup>";if(p>=0.001)return p.toFixed(3);
+  const e=Math.floor(Math.log10(p)),m=p/Math.pow(10,e);return `${m.toFixed(1)} × 10<sup>${String(e).replace("-","−")}</sup>`;}
+const pct=x=>(x*100).toFixed(x<0.01&&x>0?1:0)+"%";
+
+/* ---------- shared state ---------- */
+const NS=[10,20,50,100,200,500,1000,5000];
+const S={diff:7,nIdx:2,alpha:0.05,d:0.5,nE:30};
+const ALPHAS=[0.10,0.05,0.01,0.001];
+function current(){const n=NS[S.nIdx],se=Math.sqrt(64/n+36/n),df=2*n-2,t=S.diff/se;return {n,se,df,t,p:tTwo(t,df)};}
+
+/* ---------- Exhibit A ---------- */
+function drawP(){
+  const {n,df,t,p}=current(),W=800,H=260,m={l:20,r:20,t:16,b:40};
+  const {sx,sy}=scaler(-6,6,0.43,W,H,m),f=x=>tpdf(x,df),at=Math.abs(t);
+  let s=`<path d="${area(f,-6,6,sx,sy)}" fill="var(--h0soft)"/>`;
+  if(at<6){s+=`<path d="${area(f,at,6,sx,sy)}" fill="var(--h0)"/><path d="${area(f,-6,-at,sx,sy)}" fill="var(--h0)"/>`;
+    for(const v of [at,-at])s+=`<line x1="${sx(v)}" x2="${sx(v)}" y1="${sy(0)}" y2="${m.t+26}" stroke="#1D1B3A" stroke-width="2" ${v<0?'stroke-dasharray="5 4"':''}/>`;
+    const far=at>3.5;
+    s+=`<text x="${sx(at)+(far?-6:6)}" y="${m.t+30}" font-size="14" font-weight="600" text-anchor="${far?'end':'start'}">your result</text>`;
+    s+=`<text x="${sx(-at)+(far?6:-6)}" y="${m.t+30}" font-size="14" text-anchor="${far?'start':'end'}" fill="#5A5F7A">mirror image</text>`;
+  } else {s+=`<text x="${sx(6)}" y="${sy(0)-14}" text-anchor="end" font-size="15" font-weight="600">your t = ${t.toFixed(1)} is off the chart</text>`;}
+  s+=`<path d="${curve(f,-6,6,sx,sy)}" fill="none" stroke="var(--h0)" stroke-width="2.5"/>`;
+  s+=`<text x="${sx(0)}" y="${sy(0.07)}" text-anchor="middle" font-size="13" fill="#5A5F7A">chance alone lives here</text>`;
+  s+=axis(-6,6,1,sx,sy(0),"t");
+  $("chartP").innerHTML=s;
+  $("diffV").textContent=S.diff.toFixed(1)+" mg/dL";
+  $("nAV").textContent=n.toLocaleString();
+  $("tV").textContent=t.toFixed(2);$("dfV").textContent=df.toLocaleString();$("pV").innerHTML=fmtP(p);
+  const lvl=Math.min(1,-Math.log10(Math.max(p,1e-12))/6);$("needle").style.left=(lvl*100)+"%";
+  $("defA").innerHTML=defendant(60,68,moodOf(p),1);
+  if($("heroDef"))$("heroDef").innerHTML=defendant(790,176,moodOf(p),0.95);
+  $("mood").textContent= p>0.2?"H₀ is relaxed. This happens by chance all the time."
+    : p>0.05?"Mildly awkward for H₀, but still easy to explain away."
+    : p>0.01?"Embarrassing. H₀ starts sweating."
+    : p>0.001?"Very embarrassing. H₀ asks for a lawyer."
+    : "Mortifying. H₀ would like to leave the courtroom.";
+}
+
+/* ---------- Exhibit B ---------- */
+function drawA(){
+  const {df,t,p}=current(),W=800,H=260,m={l:20,r:20,t:16,b:40};
+  const {sx,sy}=scaler(-6,6,0.43,W,H,m),f=x=>tpdf(x,df),c=tcrit(S.alpha,df);
+  let s=`<path d="${area(f,-6,6,sx,sy)}" fill="var(--h0soft)"/>`;
+  s+=`<path d="${area(f,c,6,sx,sy)}" fill="var(--alpha)"/><path d="${area(f,-6,-c,sx,sy)}" fill="var(--alpha)"/>`;
+  s+=`<path d="${curve(f,-6,6,sx,sy)}" fill="none" stroke="var(--h0)" stroke-width="2.5"/>`;
+  for(const v of [c,-c])s+=`<line x1="${sx(v)}" x2="${sx(v)}" y1="${sy(0)}" y2="${sy(0.3)}" stroke="var(--alpha)" stroke-width="2" stroke-dasharray="6 4"/><text x="${sx(v)}" y="${sy(0.3)-8}" text-anchor="middle" font-size="14" font-weight="600" fill="#E4572E">${v>0?"+":"−"}${c.toFixed(2)}</text>`;
+  s+=`<text x="${sx(-5.2)}" y="${sy(0.12)}" text-anchor="middle" font-size="13" fill="#E4572E">α/2 = ${+(S.alpha/2).toFixed(4)}</text><text x="${sx(5.2)}" y="${sy(0.12)}" text-anchor="middle" font-size="13" fill="#E4572E">α/2 = ${+(S.alpha/2).toFixed(4)}</text>`;
+  const tx=Math.max(-5.9,Math.min(5.9,t));
+  s+=`<circle cx="${sx(tx)}" cy="${sy(0)}" r="8" fill="#1D1B3A"/><text x="${sx(tx)}" y="${sy(0)-14}" text-anchor="${tx>4.5?'end':'middle'}" font-size="14" font-weight="600">t = ${t.toFixed(2)}${Math.abs(t)>6?' (off chart)':''}</text>`;
+  s+=axis(-6,6,1,sx,sy(0),"t");
+  $("chartA").innerHTML=s;
+  const v=$("verdict"),rej=p<=S.alpha;
+  if($("bubble"))updateCourtB(rej,p);
+  v.className="verdict "+(rej?"guilty":"free");
+  v.innerHTML=rej?`Guilty: reject H₀ <small>p = ${fmtP(p)} ≤ α = ${S.alpha}. The result landed in the red zone.</small>`
+                 :`Not guilty: fail to reject H₀ <small>p = ${fmtP(p)} &gt; α = ${S.alpha}. Remember: not guilty is not the same as innocent.</small>`;
+}
+
+/* ---------- Exhibit C ---------- */
+function drawE(){
+  const W=800,H=280,m={l:20,r:20,t:16,b:40},lam=S.d*Math.sqrt(S.nE/2),zc=zcrit(S.alpha);
+  const xmin=-4,xmax=Math.max(7,lam+4),{sx,sy}=scaler(xmin,xmax,0.45,W,H,m);
+  const f0=x=>npdf(x),f1=x=>npdf(x-lam);
+  let s=`<path d="${area(f1,-zc,zc,sx,sy)}" fill="var(--beta)" opacity=".85"/>`;
+  s+=`<path d="${area(f1,zc,xmax,sx,sy)}" fill="var(--h1soft)"/><path d="${area(f1,xmin,-zc,sx,sy)}" fill="var(--h1soft)"/>`;
+  s+=`<path d="${area(f0,zc,xmax,sx,sy)}" fill="var(--alpha)"/><path d="${area(f0,xmin,-zc,sx,sy)}" fill="var(--alpha)"/>`;
+  s+=`<path d="${curve(f0,xmin,xmax,sx,sy)}" fill="none" stroke="var(--h0)" stroke-width="2.5"/>`;
+  s+=`<path d="${curve(f1,xmin,xmax,sx,sy)}" fill="none" stroke="var(--h1)" stroke-width="2.5"/>`;
+  for(const v of [zc,-zc])s+=`<line x1="${sx(v)}" x2="${sx(v)}" y1="${sy(0)}" y2="${m.t+4}" stroke="#1D1B3A" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s+=`<text x="${sx(-zc)-6}" y="${m.t+16}" font-size="13" text-anchor="end">critical values</text>`;
+  s+=`<text x="${sx(0)}" y="${sy(0.41)-6}" text-anchor="middle" font-size="14" font-weight="600" fill="#4B5BD7">H₀ true</text>`;
+  s+=`<text x="${sx(lam)}" y="${sy(0.41)-6}" text-anchor="middle" font-size="14" font-weight="600" fill="#0E9F8A">${lam<0.35?"":"effect real"}</text>`;
+  s+=axis(xmin,xmax,1,sx,sy(0),"test statistic (z)");
+  $("chartE").innerHTML=s;
+  const power=1-ncdf(zc-lam)+ncdf(-zc-lam),beta=1-power;
+  $("dEV").textContent=S.d.toFixed(2);$("nEV").textContent=S.nE;
+  $("aOut").textContent=S.alpha;$("bOut").textContent=pct(beta);$("pwOut").textContent=pct(power);
+  $("pwFill").style.width=(power*100)+"%";
+  drawJury(power);
+}
+
+/* ---------- alpha pickers ---------- */
+function drawPickers(){document.querySelectorAll(".alpha-picker").forEach(el=>{
+  el.innerHTML=ALPHAS.map(a=>`<button class="${a===S.alpha?'on':''}" data-a="${a}" aria-pressed="${a===S.alpha}">${a}</button>`).join("");});}
+document.addEventListener("click",e=>{const b=e.target.closest(".alpha-picker button");if(!b)return;S.alpha=+b.dataset.a;drawPickers();drawA();drawE();});
+
+$("diff").addEventListener("input",e=>{S.diff=+e.target.value;drawP();drawA();});
+$("nA").addEventListener("input",e=>{S.nIdx=+e.target.value;drawP();drawA();});
+$("dE").addEventListener("input",e=>{S.d=+e.target.value;drawE();});
+$("nE").addEventListener("input",e=>{S.nE=+e.target.value;drawE();});
+
+/* ---------- Exhibit D ---------- */
+const M={runs:0,fps:0,any:0};
+function mThr(){return $("bonf").checked?0.05/20:0.05;}
+function drawPills(ps){const thr=mThr();$("pills").innerHTML=Array.from({length:20},(_,i)=>{
+  const p=ps?ps[i]:null,fp=p!==null&&p<thr;
+  return `<div class="pill ${fp?'fp':''}"><b>Drug ${i+1}</b>${p===null?'–':'p='+(p<0.001?'<.001':p.toFixed(3).replace(/^0/,''))}</div>`;}).join("");}
+function mRound(){const ps=Array.from({length:20},()=>Math.random());const k=ps.filter(p=>p<mThr()).length;M.runs++;M.fps+=k;if(k)M.any++;return ps;}
+function mStats(){const thr=mThr();
+  $("mRuns").textContent=M.runs;$("mAvg").textContent=M.runs?(M.fps/M.runs).toFixed(2):"–";$("mAny").textContent=M.runs?pct(M.any/M.runs):"–";
+  $("mTheory").textContent=`Theory at α = ${+thr.toFixed(4)}: expected ${(20*thr).toFixed(2)} false discoveries per round; chance of at least one = ${pct(1-Math.pow(1-thr,20))}.`;}
+function mReset(){M.runs=M.fps=M.any=0;drawPills(null);mStats();}
+$("run1").onclick=()=>{drawPills(mRound());mStats();};
+$("run100").onclick=()=>{let ps;for(let i=0;i<100;i++)ps=mRound();drawPills(ps);mStats();};
+$("resetM").onclick=mReset;$("bonf").onchange=mReset;
+
+/* ---------- Exhibit E ---------- */
+const CI={level:0.95,list:[],hits:0,n:0};const TRUTH=7,NPG=50;
+function drawLevelPicker(){$("ciLevel").innerHTML=[0.90,0.95,0.99].map(l=>`<button class="${l===CI.level?'on':''}" data-l="${l}" aria-pressed="${l===CI.level}">${l*100}%</button>`).join("");}
+$("ciLevel").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;CI.level=+b.dataset.l;drawLevelPicker();ciReset();});
+function oneStudy(){
+  const a=Array.from({length:NPG},()=>45+8*rnorm()),b=Array.from({length:NPG},()=>38+6*rnorm());
+  const mean=x=>x.reduce((s,v)=>s+v,0)/x.length,vr=(x,mu)=>x.reduce((s,v)=>s+(v-mu)**2,0)/(x.length-1);
+  const ma=mean(a),mb=mean(b),se=Math.sqrt(vr(a,ma)/NPG+vr(b,mb)/NPG),c=tcrit(1-CI.level,2*NPG-2),d=ma-mb;
+  const lo=d-c*se,hi=d+c*se,hit=lo<=TRUTH&&hi>=TRUTH;CI.n++;if(hit)CI.hits++;CI.list.unshift({d,lo,hi,hit});if(CI.list.length>30)CI.list.pop();}
+function drawCI(){
+  const W=800,H=360,m={l:20,r:20,t:30,b:40},xmin=1,xmax=13,sx=x=>m.l+(x-xmin)/(xmax-xmin)*(W-m.l-m.r),rowH=(H-m.t-m.b)/30,y0=H-m.b;
+  let s=`<line x1="${sx(TRUTH)}" x2="${sx(TRUTH)}" y1="${m.t}" y2="${y0}" stroke="#1D1B3A" stroke-width="2"/>`;
+  s+=`<text x="${sx(TRUTH)}" y="${m.t-12}" text-anchor="middle" font-size="13" font-weight="600">true difference = 7</text>`;
+  s+=`<line x1="${sx(0.0001)}" x2="${sx(0.0001)}" y1="${m.t}" y2="${y0}" stroke="#5A5F7A" stroke-dasharray="4 4"/>`;
+  CI.list.forEach((r,i)=>{const y=m.t+rowH*(i+0.5)+4,col=r.hit?"#0E9F8A":"#E4572E",w=i===0?4:3;
+    s+=`<line x1="${sx(Math.max(xmin,r.lo))}" x2="${sx(Math.min(xmax,r.hi))}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/><circle cx="${sx(r.d)}" cy="${y}" r="${i===0?5:3.5}" fill="${col}"/>`;
+    if(i===0)s+=`<text x="${sx(Math.min(xmax,r.hi))+8}" y="${y+4}" font-size="12" fill="#5A5F7A">newest: ${r.d.toFixed(1)} (${r.lo.toFixed(1)} to ${r.hi.toFixed(1)})</text>`;});
+  if(!CI.list.length)s+=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="16" fill="#5A5F7A">Run a study to draw its interval</text>`;
+  s+=axis(xmin,xmax,1,sx,y0,"mean difference, mg/dL");
+  $("chartCI").innerHTML=s;$("ciN").textContent=CI.n;$("ciHit").textContent=CI.n?`${CI.hits} (${pct(CI.hits/CI.n)})`:"–";}
+function ciReset(){CI.list=[];CI.hits=0;CI.n=0;drawCI();}
+$("ci1").onclick=()=>{oneStudy();drawCI();};
+$("ci20").onclick=()=>{for(let i=0;i<20;i++)oneStudy();drawCI();};
+$("ciReset").onclick=ciReset;
+
+/* ---------- Exhibit F ---------- */
+function forest(id,est,lo,hi,xmin,xmax,step,unit,col){
+  const W=360,m={l:14,r:14},sx=x=>m.l+(x-xmin)/(xmax-xmin)*(W-m.l-m.r),y=34;
+  let s=`<line x1="${sx(0)}" x2="${sx(0)}" y1="6" y2="58" stroke="#1D1B3A" stroke-dasharray="4 3"/><text x="${sx(0)+4}" y="17" font-size="11" fill="#5A5F7A">no difference</text>`;
+  s+=`<line x1="${sx(lo)}" x2="${sx(hi)}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="4" stroke-linecap="round"/><rect x="${sx(est)-6}" y="${y-6}" width="12" height="12" fill="${col}"/>`;
+  s+=`<line x1="${sx(xmin)}" x2="${sx(xmax)}" y1="62" y2="62" stroke="#1D1B3A"/>`;
+  for(let v=xmin;v<=xmax+1e-9;v+=step)s+=`<text x="${sx(v)}" y="80" text-anchor="middle" font-size="11">${+v.toFixed(1)}${unit}</text>`;
+  $(id).innerHTML=s;}
+forest("f1",7.0,4.2,9.8,-2,12,2,"","#0E9F8A");
+forest("f2",-0.5,-0.7,-0.3,-6,2,1,"","#4B5BD7");
+forest("f3",2,-3,7,-6,10,2,"%","#F2A541");
+document.querySelectorAll(".reveal").forEach(b=>b.onclick=()=>{const c=b.closest(".case");c.classList.toggle("open");b.textContent=c.classList.contains("open")?"Hide":"Reveal";});
+
+
+/* ---------- characters ---------- */
+const WOOD="#9A5B34",WOODD="#7A4424",WOODDD="#5C3219",INK="#1D1B3A";
+function drop(x,y){return `<path d="M${x},${y} q-6,10 0,13 q6,-3 0,-13z" fill="#9AD0F5" stroke="#5AA9DD"/>`;}
+function defendant(x,y,mood,sc=1){
+  const c="#4B5BD7",w=`stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"`;
+  let g=`<g transform="translate(${x},${y}) scale(${sc})"><g class="${mood>=4?'shake':''}">`;
+  const armUp=mood>=4;
+  g+=`<ellipse cx="-44" cy="${armUp?-20:16}" rx="8" ry="16" fill="${c}" transform="rotate(${armUp?-25:20} -44 ${armUp?-20:16})"/>`;
+  g+=`<ellipse cx="44" cy="${armUp?-20:16}" rx="8" ry="16" fill="${c}" transform="rotate(${armUp?25:-20} 44 ${armUp?-20:16})"/>`;
+  g+=`<ellipse cx="0" cy="0" rx="46" ry="52" fill="${c}"/>`;
+  if(mood===0){g+=`<path d="M-22,-15 Q-15,-23 -8,-15" ${w}/><path d="M8,-15 Q15,-23 22,-15" ${w}/>`;}
+  else{const er=mood>=4?11:9,pr=mood>=4?2.6:4;
+    for(const ex of [-15,15])g+=`<circle cx="${ex}" cy="-16" r="${er}" fill="#fff"/><circle cx="${ex-2}" cy="-15" r="${pr}" fill="${INK}"/>`;}
+  const brow=[[-31,-31],[-31,-31],[-30,-34],[-29,-37],[-33,-41]][mood];
+  if(mood===0)g+=`<path d="M-23,-30 Q-15,-35 -7,-30" ${w}/><path d="M7,-30 Q15,-35 23,-30" ${w}/>`;
+  else g+=`<path d="M-23,${brow[0]} L-7,${brow[1]}" ${w}/><path d="M23,${brow[0]} L7,${brow[1]}" ${w}/>`;
+  g+=[`<path d="M-13,4 Q0,16 13,4" ${w}/>`,`<path d="M-10,8 L10,8" ${w}/>`,`<path d="M-12,9 Q-6,4 0,9 Q6,14 12,9" ${w}/>`,
+      `<path d="M-12,13 Q0,2 12,13" ${w}/>`,`<ellipse cx="0" cy="10" rx="7" ry="9" fill="${INK}" stroke="#fff" stroke-width="2"/>`][mood];
+  g+=`<text x="0" y="37" text-anchor="middle" font-size="21" fill="#fff" style="font-family:var(--serif)">H₀</text>`;
+  if(mood>=2)g+=drop(40,-36);if(mood>=3)g+=drop(-45,-30);if(mood>=4)g+=drop(52,-10);
+  return g+`</g></g>`;}
+function judgeBack(cx,cy,stern){
+  const skin="#E3AE84",wig="#F4F4F7",ws="#BFC3D6";
+  let g=`<path d="M${cx-58},${cy+100} L${cx-42},${cy+36} Q${cx},${cy+22} ${cx+42},${cy+36} L${cx+58},${cy+100} Z" fill="${INK}"/>`;
+  g+=`<rect x="${cx-7}" y="${cy+26}" width="6" height="18" fill="#fff"/><rect x="${cx+1}" y="${cy+26}" width="6" height="18" fill="#fff"/>`;
+  g+=`<rect x="${cx-34}" y="${cy-28}" width="68" height="60" rx="26" fill="${wig}" stroke="${ws}"/>`;
+  g+=`<circle cx="${cx}" cy="${cy}" r="26" fill="${skin}"/>`;
+  for(const sx of [-31,31])for(const dy of [-8,6,20,34])g+=`<circle cx="${cx+sx}" cy="${cy+dy}" r="9" fill="${wig}" stroke="${ws}"/>`;
+  for(let dx=-22;dx<=22;dx+=11)g+=`<circle cx="${cx+dx}" cy="${cy-25}" r="10" fill="${wig}" stroke="${ws}"/>`;
+  g+=`<circle cx="${cx-9}" cy="${cy+2}" r="2.6" fill="${INK}"/><circle cx="${cx+9}" cy="${cy+2}" r="2.6" fill="${INK}"/>`;
+  g+=`<circle cx="${cx-9}" cy="${cy+2}" r="7.5" fill="none" stroke="${INK}" stroke-width="1.8"/><circle cx="${cx+9}" cy="${cy+2}" r="7.5" fill="none" stroke="${INK}" stroke-width="1.8"/><line x1="${cx-1.5}" x2="${cx+1.5}" y1="${cy+2}" y2="${cy+2}" stroke="${INK}" stroke-width="1.8"/>`;
+  g+=stern?`<path d="M${cx-16},${cy-10} L${cx-4},${cy-6} M${cx+16},${cy-10} L${cx+4},${cy-6}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M${cx-7},${cy+15} L${cx+7},${cy+15}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`
+           :`<path d="M${cx-16},${cy-8} Q${cx-10},${cy-12} ${cx-4},${cy-8} M${cx+16},${cy-8} Q${cx+10},${cy-12} ${cx+4},${cy-8}" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M${cx-7},${cy+13} Q${cx},${cy+18} ${cx+7},${cy+13}" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+  return g;}
+function bench(x,y,w,h,label){
+  let g=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${WOOD}"/><rect x="${x-10}" y="${y-12}" width="${w+20}" height="14" rx="3" fill="${WOODD}"/>`;
+  for(let i=1;i<4;i++)g+=`<rect x="${x+i*w/4-1}" y="${y+8}" width="2" height="${h-16}" fill="${WOODD}" opacity=".5"/>`;
+  if(label)g+=`<rect x="${x+w/2-58}" y="${y+22}" width="116" height="26" rx="3" fill="#F2A541"/><text x="${x+w/2}" y="${y+40}" text-anchor="middle" font-size="15" font-weight="600" fill="${INK}">${label}</text>`;
+  return g;}
+function gavel(hx,hy,id){
+  return `<rect x="${hx+26}" y="${hy+2}" width="28" height="7" rx="2" fill="${WOODDD}"/>`+
+    `<g class="gavel" ${id?`id="${id}"`:''} style="transform-origin:${hx}px ${hy}px"><line x1="${hx}" y1="${hy}" x2="${hx+32}" y2="${hy-15}" stroke="${WOODD}" stroke-width="5" stroke-linecap="round"/>`+
+    `<rect x="${hx+27}" y="${hy-32}" width="15" height="32" rx="3" fill="${WOODDD}" transform="rotate(-25 ${hx+34} ${hy-16})"/></g>`+
+    `<circle cx="${hx}" cy="${hy}" r="7" fill="#E3AE84"/>`;}
+const JURORS=[["ghutra","#C98D5E","#3E5C9A"],["hijab","#E8B48A","#2E3A59","#7A5BA8"],["hair","#F1C9A5","#0E9F8A","#3B2A20"],["shemagh","#A86B45","#E9E4D8"],
+  ["hijab","#C98D5E","#E4572E","#1D1B3A"],["hair","#8A5634","#F2A541","#141414"],["ghutra","#E3AE84","#5A5F7A"],["hijab","#F1C9A5","#4B5BD7","#B0475A"],
+  ["shemagh","#C98D5E","#2B2850"],["hair","#E8B48A","#9A5B34","#6B4A2F"],["hijab","#A86B45","#0E9F8A","#2F5D50"],["ghutra","#8A5634","#7A5BA8"]];
+function juror(x,y,j,card){
+  const [type,skin,shirt,hair]=j;let g="";
+  if(card){g+=`<line x1="${x+12}" y1="${y+24}" x2="${x+16}" y2="${y-26}" stroke="${shirt}" stroke-width="6" stroke-linecap="round"/>`;}
+  g+=`<path d="M${x-18},${y+44} Q${x-18},${y+15} ${x},${y+15} Q${x+18},${y+15} ${x+18},${y+44} Z" fill="${shirt}"/>`;
+  if(type==="ghutra"||type==="shemagh"){
+    g+=`<path d="M${x-18},${y+24} L${x-15},${y-4} Q${x-15},${y-18} ${x},${y-18} Q${x+15},${y-18} ${x+15},${y-4} L${x+18},${y+24} Q${x},${y+15} ${x-18},${y+24} Z" fill="${type==='ghutra'?'#FAFAFC':'url(#shm)'}" stroke="#C9CCD8" stroke-width=".8"/>`;
+    g+=`<ellipse cx="${x}" cy="${y+1}" rx="9.5" ry="11" fill="${skin}"/><ellipse cx="${x}" cy="${y-11}" rx="12.5" ry="3.3" fill="none" stroke="${INK}" stroke-width="2.8"/>`;
+  }else if(type==="hijab"){
+    g+=`<path d="M${x-17},${y+26} Q${x-19},${y-18} ${x},${y-18} Q${x+19},${y-18} ${x+17},${y+26} Q${x},${y+19} ${x-17},${y+26} Z" fill="${hair}"/>`;
+    g+=`<ellipse cx="${x}" cy="${y+1}" rx="8.5" ry="10.5" fill="${skin}"/>`;
+  }else{
+    g+=`<circle cx="${x}" cy="${y}" r="12" fill="${skin}"/><path d="M${x-12.5},${y-1} Q${x-13},${y-15} ${x},${y-15} Q${x+13},${y-15} ${x+12.5},${y-1} Q${x+4},${y-9} ${x-12.5},${y-1} Z" fill="${hair}"/>`;}
+  g+=`<circle cx="${x-4}" cy="${y+1}" r="1.7" fill="${INK}"/><circle cx="${x+4}" cy="${y+1}" r="1.7" fill="${INK}"/><path d="M${x-3},${y+6} Q${x},${y+8} ${x+3},${y+6}" stroke="${INK}" stroke-width="1.3" fill="none"/>`;
+  if(card){const col=card==="g"?"#0E9F8A":"#F2A541";
+    g+=`<rect x="${x-3}" y="${y-54}" width="38" height="28" rx="4" fill="${col}" stroke="${INK}" stroke-width="1.2"/>`;
+    g+=card==="g"?`<path d="M${x+7},${y-40} l6,6 l12,-12" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+                 :`<path d="M${x+10},${y-47} l12,13 M${x+22},${y-47} l-12,13" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/>`;
+    g+=`<circle cx="${x+16}" cy="${y-24}" r="5" fill="${skin}"/>`;}
+  return g;}
+function seal(cx,cy){
+  return `<circle cx="${cx}" cy="${cy}" r="42" fill="#F2A541" stroke="#FFD48A" stroke-width="3"/><circle cx="${cx}" cy="${cy}" r="35" fill="none" stroke="${INK}" stroke-width="1" opacity=".4"/>`+
+  `<g stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"><line x1="${cx}" y1="${cy-24}" x2="${cx}" y2="${cy+8}"/><line x1="${cx-22}" y1="${cy-16}" x2="${cx+22}" y2="${cy-16}"/>`+
+  `<path d="M${cx-22},${cy-16} L${cx-30},${cy-2} M${cx-22},${cy-16} L${cx-14},${cy-2} M${cx+22},${cy-16} L${cx+14},${cy-2} M${cx+22},${cy-16} L${cx+30},${cy-2}"/>`+
+  `<path d="M${cx-31},${cy-2} Q${cx-22},${cy+8} ${cx-13},${cy-2} Z M${cx+13},${cy-2} Q${cx+22},${cy+8} ${cx+31},${cy-2} Z" fill="${INK}"/><line x1="${cx-9}" y1="${cy+9}" x2="${cx+9}" y2="${cy+9}"/></g>`+
+  `<text x="${cx}" y="${cy+27}" text-anchor="middle" font-size="12" font-weight="700" fill="${INK}">α = 0.05</text>`;}
+function drawHero(){
+  let s=`<rect width="900" height="300" fill="#2B2850"/>`;
+  for(let x=45;x<900;x+=90)s+=`<rect x="${x}" y="0" width="2" height="250" fill="#fff" opacity=".06"/>`;
+  s+=`<rect y="250" width="900" height="50" fill="#221F44"/><rect y="300" width="900" height="100" fill="#C9CEDF"/>`;
+  for(let x=-200;x<1100;x+=70)s+=`<line x1="${x}" y1="300" x2="${450+(x-450)*1.5}" y2="400" stroke="#B7BDD2" stroke-width="1"/>`;
+  s+=seal(450,64);
+  // jury box
+  [70,108,146,184,222,260].forEach((x,i)=>s+=juror(x,165,JURORS[i]));
+  [89,127,165,203,241].forEach((x,i)=>s+=juror(x,200,JURORS[i+6]));
+  s+=bench(40,242,245,70,"The jury");
+  // judge
+  s+=judgeBack(450,148,false)+bench(340,217,220,95,"Judge: you")+gavel(498,203);
+  // evidence easel
+  s+=`<g stroke="${WOODD}" stroke-width="5" stroke-linecap="round"><line x1="598" y1="330" x2="614" y2="175"/><line x1="672" y1="330" x2="656" y2="175"/><line x1="635" y1="175" x2="635" y2="320"/></g>`;
+  s+=`<rect x="585" y="182" width="100" height="72" rx="3" fill="#fff" stroke="${INK}" stroke-width="2"/>`;
+  const bx=x=>635+x*11,by=y=>240-y*110;let d="";for(let i=0;i<=40;i++){const x=-4+i*0.2;d+=(i?"L":"M")+bx(x).toFixed(1)+","+by(npdf(x)).toFixed(1);}
+  s+=`<path d="${d}" fill="none" stroke="#4B5BD7" stroke-width="2"/><line x1="${bx(2.6)}" y1="206" x2="${bx(2.6)}" y2="240" stroke="${INK}" stroke-width="2"/>`;
+  s+=`<text x="635" y="200" text-anchor="middle" font-size="11" font-weight="600">Exhibit A</text><rect x="600" y="262" width="70" height="20" rx="3" fill="#F2A541"/><text x="635" y="276" text-anchor="middle" font-size="12" font-weight="600">Evidence</text>`;
+  // defendant
+  s+=`<g id="heroDef">${defendant(790,176,heroMood(),0.95)}</g>`+bench(715,240,150,72,"Defendant: H₀");
+  $("hero").innerHTML=`<defs><pattern id="shm" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#C8323C"/><path d="M0 3H6M3 0V6" stroke="#fff" stroke-width="1"/></pattern></defs>`+s;}
+function moodOf(p){return p>0.2?0:p>0.05?1:p>0.01?2:p>0.001?3:4;}
+function heroMood(){return moodOf(current().p);}
+let lastVerdict=null;
+function drawCourtB(){
+  let s=`<rect width="800" height="250" fill="#E6E9F4"/><rect y="236" width="800" height="14" fill="#C9CEDF"/>`;
+  s+=judgeBack(200,92,true)+bench(90,160,220,78,"")+gavel(248,146,"gavelB");
+  s+=`<g id="bubble"></g><g id="bDef"></g>`+bench(595,188,150,50,"")+`<g id="bBars"></g>`;
+  $("courtB").innerHTML=s;}
+function updateCourtB(rej,p){
+  $("bubble").innerHTML=`<path d="M330,28 h240 a12,12 0 0 1 12,12 v56 a12,12 0 0 1 -12,12 h-200 l-40,26 l10,-26 h-10 a12,12 0 0 1 -12,-12 v-56 a12,12 0 0 1 12,-12z" fill="#fff" stroke="${INK}" stroke-width="2"/>`+
+    `<text x="450" y="70" text-anchor="middle" font-size="30" style="font-family:var(--serif)" fill="${rej?'#E4572E':'#4B5BD7'}">${rej?'Guilty! Reject H₀.':'Not guilty.'}</text>`+
+    `<text x="450" y="94" text-anchor="middle" font-size="13" fill="#5A5F7A">${rej?'The evidence crossed the bar you set.':'Not guilty ≠ innocent. Get more data?'}</text>`;
+  $("bDef").innerHTML=defendant(670,128,rej?4:0,0.9);
+  let b="";if(rej){b+=`<rect x="606" y="86" width="128" height="7" rx="2" fill="#5A5F7A"/>`;for(let x=612;x<=730;x+=17)b+=`<rect x="${x}" y="86" width="5" height="104" rx="2" fill="#5A5F7A"/>`;}
+  $("bBars").innerHTML=b;
+  if(lastVerdict!==null&&lastVerdict!==rej){const g=$("gavelB");g.classList.remove("bang");void g.getBoundingClientRect();g.classList.add("bang");}
+  lastVerdict=rej;}
+function drawJury(power){
+  const k=Math.round(power*12);let s="";
+  JURORS.forEach((j,i)=>{s+=juror(52+i*63.5,118,j,i<k?"g":"n");});
+  s+=bench(20,162,760,52,"");
+  $("juryC").innerHTML=s;
+  $("juryCap").textContent=`${k} of 12 courts convict. ${12-k} let a guilty H₀ walk free.`;}
+
+/* ---------- init ---------- */
+drawHero();drawCourtB();drawPickers();drawP();drawA();drawE();mReset();drawLevelPicker();drawCI();
+</script>
+</body>
+</html>
